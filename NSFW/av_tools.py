@@ -7,9 +7,17 @@ from typing import Union, List
 from dataclasses import dataclass
 import pathlib
 
+from sqlalchemy import create_engine, or_, and_
+from sqlalchemy.orm import Session
+
 from rich import print
 
 from basic import AVMeta
+
+proxies = {
+    "http": "http://127.0.0.1:7890",
+    "https": "http://127.0.0.1:7890",
+}
 
 
 @dataclass
@@ -66,7 +74,7 @@ def get_list(s, e):
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36 Edg/116.0.0.0",
             "Host": "www.playno1.com",
         }
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, proxies=proxies)
         response.encoding = "utf-8"
         soup = BeautifulSoup(response.text, "lxml")
         title = soup.find("title").get_text()
@@ -98,12 +106,7 @@ def get_list(s, e):
     return av_res
 
 
-def nyaa_search(query, proxies={}):
-    # proxies = {
-    #      'https': '127.0.0.1:3000',
-    #         'socks5': '127.0.0.1:3000'
-    # }
-
+def nyaa_search(query):
     search_url = f"https://sukebei.nyaa.si/?q={query}&f=0&c=0_0"
 
     response = requests.get(search_url, proxies=proxies)
@@ -151,7 +154,7 @@ def get_meta_data(query):
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36 Edg/116.0.0.0",
     }
-    response = requests.get(base_url, headers=headers)
+    response = requests.get(base_url, headers=headers, proxies=proxies)
 
     soup = BeautifulSoup(response.content, "lxml")
     print(soup)
@@ -248,7 +251,7 @@ def avlist_group(start):
 
 def get_playav_last_id():
     rss_url = "https://rsshub.app/playno1/av"
-    response = requests.get(rss_url)
+    response = requests.get(rss_url, proxies=proxies)
     id = re.search(
         "\<link\>http\:\/\/www\.playno1\.com/article-(\d+)-1\.html\<\/link\>",
         str(response.content),
@@ -256,12 +259,8 @@ def get_playav_last_id():
     return int(id)
 
 
-if __name__ == "__main__":
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import Session
-
-    engine = create_engine("sqlite:///final.db", echo=True)
-    av_list = avlist_group(40388 + 1)
+def append_data_use_id(arc_id):
+    av_list = avlist_group(arc_id + 1)
     with Session(engine) as session:
         all_data = session.query(AVMeta).all()
         av_id_list = [av.av_id for av in all_data]
@@ -269,16 +268,38 @@ if __name__ == "__main__":
         for av in av_list:
             if av.av_id not in av_id_list:
                 append_list.append(av)
-        print(append_list)
+        logger.info(append_list)
         session.add_all(append_list)
         session.commit()
 
-    # for i in [
-    #     "HMDN-352",
-    #     "NTK-549",
-    #     "TFZ-004",
-    #     "MIAB-018",
-    # ]:
-    #     i = re.sub("-C$", "", i, re.IGNORECASE)
-    #     print(get_magnet(i))
+
+def after_today_magnet():
+    res = []
+    with Session(engine) as session:
+        all_data = (
+            session.query(AVMeta)
+            .filter(
+                (AVMeta.publish_time == None)
+                | and_(
+                    AVMeta.publish_time <= time.strftime("%Y/%m/%d", time.localtime()),
+                    AVMeta.favorites == None,
+                )
+            )
+            .all()
+        )
+
+        for av in all_data:
+            if magnet_url := get_magnet(av.av_id):
+                res.append(magnet_url)
+                session.query(AVMeta).filter(AVMeta.av_id == av.av_id).update(
+                    {"favorites": False}
+                )
+        session.commit()
+    return res
+
+
+if __name__ == "__main__":
+    engine = create_engine("sqlite:///final.db", echo=True)
+    # append_data_use_id(40408 + 1)
+    print("\n".join(after_today_magnet()))
     pass
