@@ -300,6 +300,5 @@ def after_today_magnet():
 
 if __name__ == "__main__":
     engine = create_engine("sqlite:///final.db", echo=True)
-    # append_data_use_id(40408 + 1)
+    # append_data_use_id(40419 + 1)
     print("\n".join(after_today_magnet()))
-    pass
