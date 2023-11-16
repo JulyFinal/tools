@@ -1,13 +1,15 @@
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
-import re, os, time
+import re
+import os
+import time
 from loguru import logger
 from typing import Union, List
 from dataclasses import dataclass
 import pathlib
 
-from sqlalchemy import create_engine, or_, and_
+from sqlalchemy import create_engine, and_
 from sqlalchemy.orm import Session
 
 from rich import print
@@ -300,5 +302,5 @@ def after_today_magnet():
 
 if __name__ == "__main__":
     engine = create_engine("sqlite:///final.db", echo=True)
-    # append_data_use_id(40424 + 1)
+    # append_data_use_id(40436 + 1)
     print("\n".join(after_today_magnet()))
