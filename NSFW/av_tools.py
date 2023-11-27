@@ -281,7 +281,7 @@ def after_today_magnet():
         all_data = (
             session.query(AVMeta)
             .filter(
-                (AVMeta.publish_time == None)
+                and_ (AVMeta.publish_time == None, AVMeta.favorites == None)
                 | and_(
                     AVMeta.publish_time <= time.strftime("%Y/%m/%d", time.localtime()),
                     AVMeta.favorites == None,
@@ -302,5 +302,5 @@ def after_today_magnet():
 
 if __name__ == "__main__":
     engine = create_engine("sqlite:///final.db", echo=True)
-    # append_data_use_id(40465 + 1)
+    # append_data_use_id(40490 + 1)
     print("\n".join(after_today_magnet()))
