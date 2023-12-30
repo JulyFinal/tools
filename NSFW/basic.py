@@ -30,6 +30,7 @@ class AVMeta(Base):
     tags: Mapped[str] = mapped_column(nullable=True)
     publish_time: Mapped[str] = mapped_column(nullable=True)
     favorites: Mapped[bool] = mapped_column(nullable=True)
+    origin_url: Mapped[str] = mapped_column(nullable=True)
 
     def __repr__(self) -> str:
         return f"AVMeta(id:{self.id!r}, av_id:{self.av_id!r}, title:{self.title}), actors:{self.actors!r}, tags:{self.tags!r}, publish_time:{self.publish_time!r}"

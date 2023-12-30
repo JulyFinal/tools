@@ -18,26 +18,8 @@ from basic import AVMeta
 
 proxies = {
     "http": "http://127.0.0.1:7890",
-    "https": "http://127.0.0.1:7890",
+    # "https": "http://127.0.0.1:7890",
 }
-
-
-@dataclass
-class av:
-    avid: str
-    title: str
-    date: Union[str, None]
-    actor: Union[List[str], str]
-    tags: Union[List[str], None]
-    cover: Union[str, None]
-    actor_cover: Union[List[str], str, None]
-
-    def to_format_name(self, seq=" | "):
-        actor = self.actor
-        if isinstance(actor, list):
-            actor = ",".join(actor)
-
-        return actor + seq + self.avid + seq + self.title
 
 
 def get_list(s, e):
@@ -99,8 +81,7 @@ def get_list(s, e):
                 # else:
                 #     for i in res:
                 #         res.append([title, i, date])
-                av_res.append([title, avs, date])
-
+                av_res.append([title, avs, date, url])
             else:
                 logger.warning("PASSED! " + "TITLE: " + title + " URL: " + url)
         except Exception as e:
@@ -173,9 +154,16 @@ def get_meta_data(query):
     tags = [i.get_text() for i in soup.select("span.MuiChip-label")]
     actor = [i.get_text() for i in soup.select("p.css-13ldsdq")]
 
-    actor_imgs = [i["src"] for i in soup.find_all("img", herf=re.compile("actress"))]
+    # actor_imgs = [i["src"] for i in soup.find_all("img", herf=re.compile("actress"))]
 
-    res = av(avid, title, date, actor, tags, av_img, actor_imgs)
+    res = AVMeta(
+        av_id=avid,
+        title=title,
+        publish_time=date,
+        actors=",".join(actor),
+        tags=",".join(tags),
+        cover=av_img,
+    )
 
     return res
 
@@ -230,21 +218,22 @@ def clear_name(av_name):
 def group_res(res):
     final_res = []
 
-    for avs, times in res:
+    for avs, times, url in res:
         times_len = len(times)
         if times_len == 0:
             for av in avs:
-                final_res.append(AVMeta(av_id=clear_name(av)))
+                final_res.append(AVMeta(av_id=clear_name(av), origin_url=url))
         else:
             c_time = max(times, key=lambda x: time.strptime(x, "%Y/%m/%d"))
             for av in avs:
-                final_res.append(AVMeta(av_id=clear_name(av), publish_time=c_time))
+                final_res.append(
+                    AVMeta(av_id=clear_name(av), publish_time=c_time, origin_url=url)
+                )
     return final_res
 
 
 def avlist_group(start):
     end = get_playav_last_id()
-    print(f"{end:=}")
     avlist = get_list(start, end + 1)
     return group_res(
         [[cell for idx, cell in enumerate(row) if idx > 0] for row in avlist]
@@ -261,10 +250,11 @@ def get_playav_last_id():
     return int(id)
 
 
-def append_data_use_id(arc_id):
-    av_list = avlist_group(arc_id + 1)
+def append_data_use_id():
     with Session(engine) as session:
         all_data = session.query(AVMeta).all()
+        arc_id = max([int(re.search("article-(\d+)-1", av.origin_url).group(1)) for av in all_data if av.origin_url])
+        av_list = avlist_group(arc_id + 1)
         av_id_list = [av.av_id for av in all_data]
         append_list = []
         for av in av_list:
@@ -281,7 +271,7 @@ def after_today_magnet():
         all_data = (
             session.query(AVMeta)
             .filter(
-                and_ (AVMeta.publish_time == None, AVMeta.favorites == None)
+                and_(AVMeta.publish_time == None, AVMeta.favorites == None)
                 | and_(
                     AVMeta.publish_time <= time.strftime("%Y/%m/%d", time.localtime()),
                     AVMeta.favorites == None,
@@ -302,6 +292,5 @@ def after_today_magnet():
 
 if __name__ == "__main__":
     engine = create_engine("sqlite:///final.db", echo=True)
-    # append_data_use_id(40643 + 1)
+    append_data_use_id()
     print("\n".join(after_today_magnet()))
-    
