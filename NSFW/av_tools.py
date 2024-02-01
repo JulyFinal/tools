@@ -17,8 +17,8 @@ from rich import print
 from basic import AVMeta
 
 proxies = {
-    "http": "http://127.0.0.1:2334",
-    "https": "http://127.0.0.1:2334",
+    "http": "http://127.0.0.1:7890",
+    "https": "http://127.0.0.1:7890",
 }
 
 
@@ -291,6 +291,6 @@ def after_today_magnet():
 
 
 if __name__ == "__main__":
-    engine = create_engine("sqlite:///final.db", echo=True)
+    engine = create_engine("sqlite:///db/final.db", echo=True)
     append_data_use_id()
     print("\n".join(after_today_magnet()))
