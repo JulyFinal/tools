@@ -1,0 +1,8 @@
+loguru
+bs4
+lxml
+pandas
+sqlalchemy
+rich
+feedparser
+apprise
