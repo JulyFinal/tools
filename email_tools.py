@@ -1,9 +1,14 @@
 import feedparser
 import pandas as pd
 import apprise
+from loguru import logger
 
-user = ...
-passwd = ...
+from dotenv import dotenv_values
+
+config = dotenv_values(".env")
+
+user = config.get("email.name")
+passwd = config.get("email.password")
 
 
 def send_mail(link, title, content):
@@ -16,7 +21,16 @@ def rss_read(rss_url: str):
     news_feed = feedparser.parse(rss_url)
     df_news_feed = pd.json_normalize(news_feed.entries)
     for _, row in df_news_feed.iterrows():
-        send_mail(row.link, row.title, row.tags + "\n" + row.summary)
+        try:
+            send_mail(
+                row.link,
+                row.title,
+                str(row.tags) + "\n" + str(row.summary),
+            )
+        except Exception as e:
+            logger.error("以下内容失败")
+            logger.error(row)
+            logger.error(e)
 
     # print(df_news_feed)
 
