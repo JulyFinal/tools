@@ -241,7 +241,8 @@ def avlist_group(start):
 
 
 def get_playav_last_id():
-    rss_url = "https://rsshub.app/playno1/av"
+    # rss_url = "https://rsshub.app/playno1/av"
+    rss_url = "https://rss.wudifeixue.com/playno1/av"
     response = requests.get(rss_url, proxies=proxies)
     id = re.search(
         "\<link\>http\:\/\/www\.playno1\.com/article-(\d+)-1\.html\<\/link\>",
