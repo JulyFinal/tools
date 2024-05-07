@@ -1,12 +1,10 @@
-import requests
+import httpx
 from bs4 import BeautifulSoup
 import pandas as pd
 import re
 import os
 import time
 from loguru import logger
-from typing import Union, List
-from dataclasses import dataclass
 import pathlib
 
 from sqlalchemy import create_engine, and_
@@ -17,10 +15,11 @@ from rich import print
 from basic import AVMeta
 
 proxies = {
-    # "http": "http://127.0.0.1:7890",
-    # "https": "http://127.0.0.1:7890",
+    "http://": "http://127.0.0.1:7890",
+    # "https://": "http://127.0.0.1:7890",
 }
 
+client = httpx.Client(proxies=proxies)
 
 def get_list(s, e):
     """
@@ -58,7 +57,7 @@ def get_list(s, e):
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36 Edg/116.0.0.0",
             "Host": "www.playno1.com",
         }
-        response = requests.get(url, headers=headers, proxies=proxies)
+        response = client.get(url, headers=headers)
         response.encoding = "utf-8"
         soup = BeautifulSoup(response.text, "lxml")
         title = soup.find("title").get_text()
@@ -90,9 +89,9 @@ def get_list(s, e):
 
 
 def nyaa_search(query):
-    search_url = f"https://sukebei.nyaa.si/?q={query}&f=0&c=0_0"
+    search_url = f"https://sukebei.nyaa.si/?f=0&c=0_0&q={query}"
 
-    response = requests.get(search_url, proxies=proxies)
+    response = client.get(search_url)
     soup = BeautifulSoup(response.content, "lxml")
 
     headers = [
@@ -137,7 +136,7 @@ def get_meta_data(query):
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36 Edg/116.0.0.0",
     }
-    response = requests.get(base_url, headers=headers, proxies=proxies)
+    response = client.get(base_url, headers=headers)
 
     soup = BeautifulSoup(response.content, "lxml")
     print(soup)
@@ -243,7 +242,7 @@ def avlist_group(start):
 def get_playav_last_id():
     # rss_url = "https://rsshub.app/playno1/av"
     rss_url = "https://rss.wudifeixue.com/playno1/av"
-    response = requests.get(rss_url, proxies=proxies)
+    response = client.get(rss_url)
     id = re.search(
         "\<link\>http\:\/\/www\.playno1\.com/article-(\d+)-1\.html\<\/link\>",
         str(response.content),
@@ -288,10 +287,13 @@ def after_today_magnet():
                     {"favorites": False}
                 )
         session.commit()
+    
     return res
 
 
 if __name__ == "__main__":
     engine = create_engine("sqlite:///db/final.db", echo=True)
     append_data_use_id()
-    print("\n".join(after_today_magnet()))
+    res = after_today_magnet()
+    with open("output.txt", "w+") as f:
+        f.writelines(res)
