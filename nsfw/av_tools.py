@@ -14,12 +14,16 @@ from rich import print
 
 from basic import AVMeta
 
-proxies = {
-    "http://": "http://127.0.0.1:7890",
-    # "https://": "http://127.0.0.1:7890",
-}
+proxies = {"http://": "http://127.0.0.1:7890", "https://": "http://127.0.0.1:7890"}
 
-client = httpx.Client(proxies=proxies)
+client = httpx.Client(
+    proxies=proxies,
+    headers={
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+    },
+)
+
 
 def get_list(s, e):
     """
@@ -53,8 +57,6 @@ def get_list(s, e):
     def get_content(url):
         headers = {
             "Cookie": "HZ1J_2846_saltkey=9T8SJv1j; HZ1J_2846_lastvisit=1690871568; playno1=playno1Cookie; HZ1J_2846_sid=X74vx7; playno1_referer=%2Farticle-39849-1.html; HZ1J_2846_secqaaSX74vx70=e9b83me%2BIS4HoGeT%2FiScSTbxCrAeNhppWMiYEKVfUHig2tHslsYsHa%2BJGO%2FtxoBrgncBrDDFK%2BfCK0JRjNm4LVObjZd3xaN8o6xRqgYIMM75udsLodWzABsY; HZ1J_2846_lastact=1691489341%09portal.php%09view",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36 Edg/116.0.0.0",
             "Host": "www.playno1.com",
         }
         response = client.get(url, headers=headers)
@@ -90,7 +92,6 @@ def get_list(s, e):
 
 def nyaa_search(query):
     search_url = f"https://sukebei.nyaa.si/?f=0&c=0_0&q={query}"
-
     response = client.get(search_url)
     soup = BeautifulSoup(response.content, "lxml")
 
@@ -253,7 +254,13 @@ def get_playav_last_id():
 def append_data_use_id():
     with Session(engine) as session:
         all_data = session.query(AVMeta).all()
-        arc_id = max([int(re.search("article-(\d+)-1", av.origin_url).group(1)) for av in all_data if av.origin_url])
+        arc_id = max(
+            [
+                int(re.search("article-(\d+)-1", av.origin_url).group(1))
+                for av in all_data
+                if av.origin_url
+            ]
+        )
         av_list = avlist_group(arc_id + 1)
         av_id_list = [av.av_id for av in all_data]
         append_list = []
@@ -287,7 +294,7 @@ def after_today_magnet():
                     {"favorites": False}
                 )
         session.commit()
-    
+
     return res
 
 
@@ -295,5 +302,6 @@ if __name__ == "__main__":
     engine = create_engine("sqlite:///db/final.db", echo=True)
     append_data_use_id()
     res = after_today_magnet()
-    with open("output.txt", "w+") as f:
-        f.writelines(res)
+    if res:
+        with open("output", "w+") as f:
+            f.writelines(res)
