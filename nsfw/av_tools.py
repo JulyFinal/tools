@@ -303,5 +303,5 @@ if __name__ == "__main__":
     append_data_use_id()
     res = after_today_magnet()
     if res:
-        with open("output", "w+") as f:
-            f.writelines(res)
+        with open("output", "w") as f:
+            f.write("\n".join(res))
